@@ -6,8 +6,8 @@
 #define PacketReader_h
 
 #include <cstdio>
-#include "interface/Interface.h"
-#include "log/Log.h"
+#include "Interface.h"
+#include "Log.h"
 
 class NullServo:public Servo {
 public:

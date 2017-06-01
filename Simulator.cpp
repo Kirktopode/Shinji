@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../Loginator/Yukari/sim/robot.h"
 #include "Simulator.h"
 #include "LogCSV.h"
 

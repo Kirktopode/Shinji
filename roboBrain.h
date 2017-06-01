@@ -5,7 +5,7 @@
 #ifndef ROBOBRAIN_H_
 #define ROBOBRAIN_H_
 
-#include "controller/controller.h"
+#include "controller.h"
 #include "waypoint.h"
 
 class roboBrain: public Controller {

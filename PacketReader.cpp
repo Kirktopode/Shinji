@@ -4,7 +4,7 @@
 #include <string.h>
 //#include "robot.h"    //Not sure if this header is even implemented here.
 #include "PacketReader.h"
-#include "log/LogCSV.h"
+#include "LogCSV.h"
 
 using namespace std;
 

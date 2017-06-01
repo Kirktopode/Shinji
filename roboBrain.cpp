@@ -5,9 +5,9 @@
 #include <string.h>
 #include <stdint.h>
 //#include "HeaderSimRobo.h"
-#include "controller/controller.h"
-#include "controller/roboBrain.h"
-#include "Simulator/Simulator.h" //quick-and-dirty solution to let the cheat compass take information from Simulator class
+#include "controller.h"
+#include "roboBrain.h"
+#include "Simulator.h" //quick-and-dirty solution to let the cheat compass take information from Simulator class
 
 using namespace std;
 

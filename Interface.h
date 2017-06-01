@@ -4,7 +4,7 @@
 #ifndef Interface_h
 #define Interface_h
 
-#include "math/float.h"
+#include "float.h"
 #include <inttypes.h>
 
 /** Abstract interface to a servo. This is write-only, because a real physical servo is write-only */

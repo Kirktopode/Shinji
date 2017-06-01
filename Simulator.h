@@ -4,8 +4,8 @@
 #ifndef Simulator_h
 #define Simulator_h
 #include <stdint.h>
-#include "interface/Interface.h"
-#include "log/Log.h"
+#include "Interface.h"
+#include "Log.h"
 #include "waypoint.h"
 
 //const fp re=6378137.0;
