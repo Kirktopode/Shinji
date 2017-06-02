@@ -202,6 +202,7 @@ void roboBrain::navigateGPS(){
 
 void roboBrain::showVector(Log& pkt) {
   pkt.start(0, "roboBrain");
+  pkt.write(interface.time());
   pkt.write(interface.button(), "button status");
   pkt.write(zDN,"zDN");
   pkt.write(offSet, "offset");
