@@ -4,9 +4,9 @@
 #ifndef controller_h
 #define controller_h
 
-#include "math/float.h"
-#include "log/Log.h"
-#include "interface/Interface.h"
+#include "float.h"
+#include "Log.h"
+#include "Interface.h"
 
 const fp re=6378137.0;     ///< radius of Earth, used to convert between lat/lon and northing/easting
 const fp tickDistance=0.30198;
