@@ -1,6 +1,9 @@
 
-packetRobotMain.exe: packetRobotMain.o PacketReader.o LogCSV.o LogFile.o
-	g++ --std=c++14 packetRobotMain.o PacketReader.o LogCSV.o LogFile.o -o packetRobotMain.exe
+packetRobotMain.exe: packetRobotMain.o PacketReader.o LogCSV.o LogFile.o roboBrain.o
+	g++ --std=c++14 packetRobotMain.o roboBrain.o PacketReader.o LogCSV.o LogFile.o -o packetRobotMain.exe
+
+roboBrain.o: roboBrain.cpp
+	g++ --std=c++14 -c -o roboBrain.o roboBrain.cpp
 
 LogCSV.o: LogCSV.cpp
 	g++ --std=c++14 -c -o LogCSV.o LogCSV.cpp
