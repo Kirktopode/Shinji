@@ -59,8 +59,9 @@ char PacketReader::readChar() {
 /** Update the MPU data of the robot
  */
 void PacketReader::update() {
-  fscanf(data,"%lf, %hd, %hd, %hd, %hd, %hd, %hd, %hd, %hd, %hd, %hd, %hd", &epochTime, 
-  &temp, &a[0], &a[1], &a[2], &g[0], &g[1], &g[2], &MagOK, &b[0], &b[1], &b[2]);
+  if(fscanf(data,"%lf, %hd, %hd, %hd, %hd, %hd, %hd, %hd, %hd, %hd, %hd, %hd", &epochTime, 
+  &temp, &a[0], &a[1], &a[2], &g[0], &g[1], &g[2], &MagOK, &b[0], &b[1], &b[2]) == EOF)
+    finished = true;
 }
 
 /** Print information related to the current state in CSV format */

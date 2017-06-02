@@ -21,6 +21,7 @@ public:
 class PacketReader:public Interface {
 private:
   FILE* data;
+  bool finished;          ///< becomes true if the end of the file has been reached
   double epochTime;       ///< epoch time - current time relative to start of recording in seconds
   int16_t temp;           ///< temperature reading from .csv file
   int16_t a[3];           ///< Accelerometer readings from .csv file, in order x, y, z
@@ -114,6 +115,7 @@ public:
    */
 //  virtual void cheatHeading(double& h) {h=heading;};
   virtual void testOdometer(double t); //Not sure how we'll use it, but keeping it for now.
+  bool isFinished(){ return finished; };
 
 };
 
