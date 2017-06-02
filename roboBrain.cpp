@@ -201,22 +201,16 @@ void roboBrain::navigateGPS(){
 }
 
 void roboBrain::showVector(Log& pkt) {
-//  pkt.write(latdd,"lat from gps");
-//  pkt.write(longdd,"lon from gps");
+  pkt.start(0, "roboBrain");
   pkt.write(interface.button(), "button status");
   pkt.write(zDN,"zDN");
   pkt.write(offSet, "offset");
   pkt.write(ofBuffer[bufferSpot], "current buffer's value");
   pkt.write(bufferSpot, "buffer spot");
-//  pkt.write(wheelCount,"wheelCount");
-//  pkt.write(pos.easting(),"est easting");
-//  pkt.write(pos.northing(),"est northing");
-//  pkt.write(nowpoint,"nowpoint");
-//  pkt.write(waypoints[nowpoint].easting(),"waypoint easting");
-// pkt.write(waypoints[nowpoint].northing(),"waypoint northing");
   pkt.write(yawRate, "yaw rate");
   pkt.write(heading, "est heading");
   pkt.write(desiredHeading,"desired heading");
   pkt.write(headingChange,"heading change");
   pkt.write(servoCommand, "steering command");
+  pkt.end();
 }
