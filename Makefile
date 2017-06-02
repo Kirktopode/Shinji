@@ -17,4 +17,5 @@ packetRobotMain.o: packetRobotMain.cpp
 LogFile.o: LogFile.cpp
 	g++ --std=c++14 -c -g -o LogFile.o LogFile.cpp
 	
-
+clean:
+  rm *.o *.exe
