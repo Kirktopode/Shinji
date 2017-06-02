@@ -13,7 +13,7 @@ So, create the roboBrain object and the interface.
 
 */
 
-const char* dataFile = "/home/kirktopode/git/roboSim/testInputData/20170509T000918/record.csv";
+const char* dataFile = "20170509T000918/record.csv";
 const char* logCOutput = "packetOutput.csv";
 const char* logGpsOutput = "packetGpsOutput.csv";
 
