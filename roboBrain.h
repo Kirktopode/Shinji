@@ -49,14 +49,14 @@ protected:
   double yawRate;
   double epochTime;
   double dt;
-  int offSet;
+  int16_t offSet = 0; ///< offset used as averageG. Zero starting value indicates it hasn't been set
   static const int bufferDiscard = 300;
   static const int bufferMax = 1500;
-  int ofBuffer[bufferMax];
+  int16_t ofBuffer[bufferMax];
   int bufferSpot;
   Log& logC;
   Log& logGps;
-  void fillBuffer();
+  void fillBuffer(int16_t dn);
   void setOffSet();
   int servoCommand;
   int32_t wheelCount; ///< count of sector changes taken last time by the odometer

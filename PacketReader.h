@@ -109,7 +109,7 @@ public:
     return true;
   };
   virtual fp time() {return epochTime;};
-  virtual bool button(int pin=17) {return epochTime >= 1;}; //Button will not be used, but must be defined.
+  virtual bool button(int pin=17) {return epochTime >= 60;}; //Button will not be used, but must be defined.
   /** Back-door direct access to heading
    * @param h [out] heading in degrees east of true north
    */

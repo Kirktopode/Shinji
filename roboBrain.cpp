@@ -88,8 +88,16 @@ void roboBrain::navigateCompass(){
 	int16_t g[3];
 	interface.readGyro(g);
 	zDN=g[2];
-	yawRate = double(g[2] - offSet)/ 0x7FFF * 250;
-	heading -= yawRate * dt;
+	if(interface.button()){
+	  if(offSet == 0) setOffSet();
+  	yawRate = double(g[2] - offSet)/ 0x7FFF * 250;
+	  heading -= yawRate * dt;
+    while(heading < 0) heading = 360 + heading;
+    while(heading > 360) heading = heading - 360;
+	}
+	else{
+	  fillBuffer(g[2]);
+	}
 }
 
 void roboBrain::updateTime(){
@@ -98,11 +106,8 @@ void roboBrain::updateTime(){
   dt = epochTime - oldTime;
 }
 
-void roboBrain::fillBuffer(){
-  int16_t g[3];
-  interface.readGyro(g);
-  ofBuffer[bufferSpot] = g[2];
-  zDN=g[2];
+void roboBrain::fillBuffer(int16_t dn){
+  ofBuffer[bufferSpot] = dn;
   bufferSpot++;
   if(bufferSpot >= 1500) bufferSpot = 0;
 }
