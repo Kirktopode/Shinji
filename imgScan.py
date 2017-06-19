@@ -6,6 +6,7 @@
 # image array is in format [y][x][rgb]
 
 import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
 from numpy import ndarray
 import math
 
@@ -34,7 +35,7 @@ def scanHorizontalLineForRed(image, lineInt):
 		if isRed(image[lineInt][i]):
 			pixelIndices.append(i)
 	return pixelIndices
-	
+
 def scanVerticalLineForRed(image, lineInt):
 	if type(image) != ndarray:
 		print "!--Error--> var 'image' in scanVerticalLineForRed must be ndarray"
@@ -47,7 +48,7 @@ def scanVerticalLineForRed(image, lineInt):
 		if isRed(image[i][lineInt]):
 			pixelIndices.append(i)
 	return pixelIndices
-	
+
 #Take the image
 #Scan through every line
 #How do I determine if the cylinder has begun?
@@ -90,14 +91,36 @@ else: print "bottomIndices is empty!"
 #height of barrel is 5
 #radius is 1.5
 radius = 1.5
-barrelHeight = 5
-robotHeight = 2
+barrelHeight = 5.0
+robotHeight = 2.0
 
 edgeDis = float(topIndices[0] - topCorner[0]) / float(topIndices[1] - topCorner[1])
 edgeDis2 = float(bottomIndices[0] - bottomCorner[0]) / float(bottomIndices[1] - bottomCorner[1])
+
+edgeDist = radius*float(topCorner[0] - topIndices[0]) / float(topIndices[1] - topCorner[1])
+edgeDist2 = radius*float(bottomIndices[0] - bottomCorner[0]) / float(bottomIndices[1] - bottomCorner[1])
 
 dis2 = (radius * math.tan(math.asin(edgeDis2)) + robotHeight) / math.tan(math.asin(edgeDis2))
 dis = (radius * math.tan(math.asin(edgeDis)) + robotHeight - barrelHeight) / math.tan(math.asin(edgeDis))
 
 print dis2
 print dis
+print ""
+dis4 = radius * (edgeDist + barrelHeight - robotHeight) / edgeDist
+dis3 = radius * (robotHeight + edgeDist2) / edgeDist2
+print edgeDist, edgeDist2
+
+print ""
+print dis4
+print dis3
+print radius, robotHeight / edgeDist2, radius+robotHeight/edgeDist2
+
+cDist = 5
+pixHeight = 0.002820972
+cHeight = (bottomIndices[0] - float(img.shape[0]/2) ) * pixHeight
+fHeight = robotHeight
+# fdist / fheight = cdist / cheight
+# fdist = cdist * fheight / cheight
+fDist = radius + cDist * fHeight / cHeight
+print ""
+print fDist
