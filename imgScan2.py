@@ -5,11 +5,40 @@
 #
 # image array is in format [y][x][rgb]
 
+################################################################################
+
+import math
+
+radius = 1.5
+barrelHeight = 5.0
+robotHeight = 2.0
+barrelWidth = 2 * radius
+
+cHeight = robotHeight
+cDist = 5
+pixHeight = 0.002820972
+pixWidth = pixHeight
+#cHeight = (bottomIndices[0] - float(img.shape[0]/2) ) * pixHeight
+#fHeight = robotHeight
+# fdist / fheight = cdist / cheight
+# fdist = cdist * fheight / cheight
+#fDist = radius + cDist * fHeight / cHeight
+
+################################################################################
+
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from numpy import ndarray
 import math
 
+class Vector:
+	def __init__(self, x, y):
+		self.x = x
+		self.y = y
+class Point:
+	def __init__(self, x, y):
+		self.x = x
+		self.y = y
 
 def isRed(pixel):
 	if type(pixel) != ndarray:
@@ -53,95 +82,85 @@ def scanH2(image, y, xStart, xFinish):
 				pixelIndices[-1].append(x+1)
 	return pixelIndices
 
-def scanBody2(image, y, xStart, xFinish):
-	topCorners = [y, xStart, y, xFinish]
-	leftCorner = []
-	rightCorner = []
-	leftBottom = []
-	rightBottom = []
-	middleBottom = []
-	i = 1
-	indices = scanH2(image, y+i, xStart, xFinish)
-	lastIndices = indices
-	while len(lastIndices) > 0:
-		if len(indices) > 0:
-			xStart = indices[0][0]
-			xFinish = indices[-1][-1]
-		lastLastIndices = lastIndices
-		lastIndices = indices
-		indices = scanH2(image, y+i, xStart, xFinish)
-		#if it just started getting smaller, it's a corner
-		#if it just splits, it's identical to finding a sidebottom
-		#if it ends, we've found a bottompoint
-		if len(indices) == 0:
-			middleBottom.append([y+i,
-			 (lastIndices[0][0]+lastIndices[-1][-1])/2])
-			lastIndices = indices
+##
+#New scan method
+#Scan vertically from the middle
+#Compare the barrel's radius and robot's height to the measured ratio
+#Depending on how off this is, scan other portions of the red body
+#Expect no more than one hidden barrel.
+
+def scanBody3(image, y, xStart, xFinish, radius, roHeight):
+	midPoint = (xFinish + xStart) / 2
+	pHeight = 0
+	while(isRed(image[y+pHeight][midPoint])):
+		pHeight += 1
+	pWidth = xFinish - xStart
+	cWidth = pixWidth * pWidth
+	cHeight = pixHeight * pHeight
+	# if cWidth is not within 10% of 3/2 of cHeight, then I need to look for
+	# other points depending on the height I do find
+	if(abs(cWidth-1.5*cHeight) <= .1*1.5*cHeight):
+		#I have one cylinder
+		return {"midPoint":[midPoint], "bottomPoint":[y+pHeight]}
+	elif(cWidth < 1.5 * cHeight):
+		#I assume there is one and it is partially hidden.
+
+		#test two heights, take the greater as nearer the centerside
+		midPoint1 = (xStart + midPoint) / 2
+		midPoint2 = (midPoint + xFinish) / 2
+		pHeight1 = 0
+		while(isRed(image[y+pHeight1][midPoint1])):
+			pHeight1 += 1
+		pHeight2 = 0
+		while(isRed(image[y+pHeight2][midPoint2])):
+			pHeight2 += 1
+		if(pHeight1 > pHeight): pHeight = pHeight1
+		if(pHeight2 > pHeight): pHeight = pHeight2
+		if(pHeight1 > pHeight2):
+			pWidth = int(math.floor(1.5 * pHeight + 0.5))
+			midPoint = xFinish - pWidth/2
+		elif(pHeight2 > pHeight1):
+			pWidth = int(math.floor(1.5 * pHeight + 0.5))
+			midPoint = xStart + pWidth/2
+		if(midPoint < 0 or midPoint > image.shape[1]):
+			return {"midPoint":[midPoint],"bottomPoint":[y+pHeight]}
 		else:
-			if lastIndices[0][0] == lastLastIndices[0][0] and indices[0][0] > lastIndices[0][0]:
-				leftCorner.append([y+i,lastIndices[0][0]])
-			elif lastIndices[0][0] > lastLastIndices[0][0] and indices[0][0] == lastIndices[0][0]:
-				leftBottom.append([y+i,lastIndices[0][0]])
-			if lastIndices[-1][-1] == lastLastIndices[-1][-1] and indices[-1][-1] < lastIndices[-1][-1]:
-				rightCorner.append([y+i,lastIndices[-1][-1]])
-			elif lastIndices[-1][-1] < lastLastIndices[-1][-1] and indices[-1][-1] == lastIndices[-1][-1]:
-				rightBottom.append([y+i,lastIndices[-1][-1]])
-		i += 1
-	return {"topCorners":topCorners, "leftCorner":leftCorner, "rightCorner":rightCorner,
-	 "leftBottom":leftBottom, "rightBottom":rightBottom, "middleBottom":middleBottom}
+			pHeight = 0
+			print "pHeight: " + str(pHeight) + " midPoint: " + str(midPoint)
+			while(isRed(image[y+pHeight][midPoint])):
+				pHeight += 1
+			return {"midPoint":[midPoint],"bottomPoint":[y+pHeight]}
 
-#
-##scanRedBody begins at the upper left pixel of a red body and finds the lowest
-#central point of the body. If multiple red bodies are connected, it finds the
-#lowest central point of each connected body. These lowest points are returned
-#in an array of two-member arrays.
-#I may scan for width in order to predict the centerpoint of partially hidden
-#cylinders.
-#
-
-def scanRedBody(yIndex, xIndex, image):
-	if type(image) != ndarray:
-		print "!--Error--> var 'image' in scanRedBody must be ndarray"
-		return []
-	if type(yIndex) != int:
-		print "!--Error--> var 'yIndex' in scanRedBody must be int"
-		return []
-	if type(xIndex) != int:
-		print "!--Error--> var 'xIndex' in scanRedBody must be int"
-		return []
-	bottomIndices = []
-	lastDownStep = []
-	edgePoints = []
-	lastn = 0
-	n = 0
-	i = 0
-	while (xIndex + i < image.shape[1]) and isRed(img[yIndex][xIndex + i]):
-		if n != 0:
-			lastn = n
-		n = 0
-		#print i
-		while isRed(img[yIndex + n + 1][xIndex + i]):
-			n += 1
-		if(lastn == 0):
-			if len(edgePoints) == 0: #if edgePoints is empty, add this
-				edgePoints.append([[yIndex + n, xIndex]])
-		elif (lastn == n - 1):  #if the pixels are slowly inching downward
-			lastDownStep = [yIndex + n, xIndex + i]
-		elif (lastn == n + 1): #if the pixels are going up
-			if len(lastDownStep) > 0 and (lastDownStep[0] == lastn): #if we went down and are going up
-				#we have found a bottompoint for a cylinder
-				edgePoints[len(edgePoints)-1].append([lastDownStep[1],(xIndex + (i - 1) - lastDownStep[0])/2.0])
-		elif (lastn < n) or (lastn > n): #bigger jump indicates a new cylinder
-			edgePoints[len(edgePoints)-1].append([yIndex + lastn, xIndex + i - 1])
-			edgePoints.append([[yIndex + n, xIndex + i]])
-		i += 1
-	print yIndex, n, xIndex, i
-	edgePoints[len(edgePoints)-1].append([yIndex + n,xIndex + i - 1])
-
-		#else: #if we don't have a bottompoint, but do have the right side of a cylinder
-	return edgePoints
-
-
+	elif(cWidth > 1.5 * cHeight):
+		#I assume there are two.
+		pWidth = math.floor(1.5 * pHeight + 0.5)
+		midLeft = int(math.floor(((xFinish - pWidth) + xStart)/2))
+		midRight = int(math.floor(((xStart + pWidth) + xFinish)/2))
+		lHeight = 0
+		rHeight = 0
+		pHeight2 = 0
+		while(isRed(image[y + lHeight][midLeft])):
+			lHeight += 1
+		while(isRed(image[y + rHeight][midRight])):
+			rHeight += 1
+		if(lHeight > rHeight):
+			pHeight2 = rHeight
+			pMid = xStart + math.floor(0.5 * pWidth + 0.5)
+			pWidth2 = math.floor(1.5 * pHeight2 + 0.5)
+			pMid2 = xFinish - math.floor(0.5 * pWidth2 + 0.5)
+		elif(rHeight > lHeight):
+			pHeight2 = lHeight
+			pMid = xFinish - math.floor(0.5 * pWidth + 0.5)
+			pWidth2 = math.floor(1.5 * pHeight2 + 0.5)
+			pMid2 = xStart + math.floor(0.5 * pWidth2 + 0.5)
+		else:
+			pHeight = lHeight
+			pHeight2 = rHeight
+			pWidth = math.floor((xFinish - xStart) / 2)
+			pWidth2 = pWidth
+			pMid = xFinish - math.floor(0.5 * pWidth + 0.5)
+			pMid2 = xStart + math.floor(0.5 * pWidth2 + 0.5)
+		return {"midPoint":[pMid, pMid2], "bottomPoint":[y+pHeight, y+pHeight2]}
 
 #Take the image
 #Scan through every line
@@ -149,22 +168,66 @@ def scanRedBody(yIndex, xIndex, image):
 #I want a solid line of reds. I want the last line to have some red
 #
 
+dirVector = Vector(1,0);
+
+
+rotTheta = math.atan2(dirVector.y, dirVector.x)
+rotCos = math.cos(rotTheta)
+rotSin = math.sin(rotTheta)
+
 img=mpimg.imread('testInputData/red_cylinders.png')
 
 halfYPixel = img.shape[0]/2
 
 indices = scanH2(img, halfYPixel, 0, img.shape[1])
 print indices
-
-cylinderPoints = []
-
-yIndex = img.shape[0]/2
+barrels = []
 for xIndices in indices:
-	obstaclePoints = scanBody2(img, halfYPixel,xIndices[0],xIndices[1])
-	print obstaclePoints
-	print ""
-	print ""
+	keyPoints = scanBody3(img, halfYPixel, xIndices[0], xIndices[1], radius, robotHeight)
+	for i in range(len(keyPoints['bottomPoint'])):
+		cHeight = (keyPoints['bottomPoint'][i] - float(img.shape[0]) / 2.0 ) * pixHeight
+		rHeight = robotHeight
+		rDist = cDist * rHeight / cHeight + radius#Forward distance to the barrel
+		cLDist = (float(img.shape[1]) / 2.0 - keyPoints['midPoint'][i] ) * pixWidth
+		rLDist = cLDist * rDist / cDist #Left distance to the barrel
+		newBarrel = Point(rotCos * rDist - rotSin * rLDist, rotSin * rDist + rotCos * rLDist)
+		barrels.append(newBarrel)
 
+for barrel in barrels:
+	print "(" + str(barrel.x) + "," + str(barrel.y) + ")"
+
+################################################################################
+
+# I'm going to relate expected height to perceived width
+#
+
+#radius = 1.5
+#barrelHeight = 5.0
+#robotHeight = 2.0
+#barrelWidth = 2 * radius
+
+#cDist = 5
+#pixHeight = 0.002820972
+#pixWidth = pixHeight
+
+#cHeight = (bottomIndices[0] - float(img.shape[0]/2) ) * pixHeight
+#rHeight = robotHeight
+# rdist / rheight = cdist / cheight
+# rdist = cdist * rheight / cheight
+#rDist = radius + cDist * rHeight / cHeight
+
+################################################################################
+
+##COMMENTED OUT TO TEST A DIFFERENT WAY
+#cylinderPoints = []
+#
+#yIndex = img.shape[0]/2
+#for xIndices in indices:
+#	obstaclePoints = scanBody2(img, halfYPixel,xIndices[0],xIndices[1])
+#	print obstaclePoints
+#	print ""
+#	print ""
+##
 
 
 # D = (r * tan(asin(edgeDist / r)) + robotHeight) / tan(asin(edgeDist / r))
@@ -173,15 +236,3 @@ for xIndices in indices:
 #distance from the ground is 2
 #height of barrel is 5
 #radius is 1.5
-################################################################################
-radius = 1.5
-barrelHeight = 5.0
-robotHeight = 2.0
-
-cDist = 5
-pixHeight = 0.002820972
-#cHeight = (bottomIndices[0] - float(img.shape[0]/2) ) * pixHeight
-#fHeight = robotHeight
-# fdist / fheight = cdist / cheight
-# fdist = cdist * fheight / cheight
-#fDist = radius + cDist * fHeight / cHeight
