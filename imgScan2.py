@@ -2,11 +2,10 @@
 # D = (r * tan(asin(edgeDist / r)) + robotHeight) / tan(asin(edgeDist / r))
 # D = (r * tan(asin(edgeDist / r)) + robotHeight - barrelHeight) / tan(asin(edgeDist / r))
 #
-#
 # image array is in format [y][x][rgb]
-
 ################################################################################
 
+import sys
 import math
 
 radius = 1.5
@@ -51,19 +50,6 @@ def isRed(pixel):
 		return True
 	else:
 		return False
-
-def scanHorizontalLineForRed(image, lineInt):
-	if type(image) != ndarray:
-		print "!--Error--> var 'image' in scanHorizontalLineForRed must be ndarray"
-		return []
-	if type(lineInt) != int:
-		print "!--Error--> var 'lineInt' in scanHorizontalLineForRed must be int"
-		return []
-	pixelIndices=[]
-	for i in range(image.shape[1]):
-		if isRed(image[lineInt][i]) and (not isRed(image[lineInt][i-1]) or i == 0) :
-			pixelIndices.append(i)
-	return pixelIndices
 
 #Scan a select portion of a horizontal line, returning an array of indices
 #Every even index(0, 2, 4, etc) denotes when red begins, every odd (1, 3, 5, etc)
@@ -168,15 +154,36 @@ def scanBody3(image, y, xStart, xFinish, radius, roHeight):
 #I want a solid line of reds. I want the last line to have some red
 #
 
-dirVector = Vector(1,0);
+if len(sys.argv) < 2:
+	print "USAGE: python imgScan2.py [png file] [dirVector x] [dirVector y] [origin x] [origin y]"
+	print "dirVector defaults to 1 0"
+	print "origin defaults to 0 0"
+	exit()
+else:
+	imgFile = sys.argv[1]
+	if not imgFile.endswith(".png"):
+		print "USAGE: python imgScan2.py [png file] [dirVector x] [dirVector y] [origin x] [origin y]"
+		print "dirVector defaults to 1 0"
+		print "origin defaults to 0 0"
+		exit()
 
+if len(sys.argv) < 4:
+	dirVector = Vector(1,0)
+else:
+	dirVector = Vector(float(sys.argv[2]), float(sys.argv[3]))
+
+if len(sys.argv) < 6:
+	origin = Point(0,0)
+else:
+	origin = Point(float(sys.argv[4]), float(sys.argv[5]))
 
 rotTheta = math.atan2(dirVector.y, dirVector.x)
 rotCos = math.cos(rotTheta)
 rotSin = math.sin(rotTheta)
 
-img=mpimg.imread('testInputData/red_cylinders.png')
+img=mpimg.imread(imgFile)
 
+print img.shape
 halfYPixel = img.shape[0]/2
 
 indices = scanH2(img, halfYPixel, 0, img.shape[1])
@@ -190,7 +197,8 @@ for xIndices in indices:
 		rDist = cDist * rHeight / cHeight + radius#Forward distance to the barrel
 		cLDist = (float(img.shape[1]) / 2.0 - keyPoints['midPoint'][i] ) * pixWidth
 		rLDist = cLDist * rDist / cDist #Left distance to the barrel
-		newBarrel = Point(rotCos * rDist - rotSin * rLDist, rotSin * rDist + rotCos * rLDist)
+		newBarrel = Point(origin.x + rotCos * rDist - rotSin * rLDist,
+		                  origin.y + rotSin * rDist + rotCos * rLDist)
 		barrels.append(newBarrel)
 
 for barrel in barrels:
@@ -215,24 +223,3 @@ for barrel in barrels:
 # rdist / rheight = cdist / cheight
 # rdist = cdist * rheight / cheight
 #rDist = radius + cDist * rHeight / cHeight
-
-################################################################################
-
-##COMMENTED OUT TO TEST A DIFFERENT WAY
-#cylinderPoints = []
-#
-#yIndex = img.shape[0]/2
-#for xIndices in indices:
-#	obstaclePoints = scanBody2(img, halfYPixel,xIndices[0],xIndices[1])
-#	print obstaclePoints
-#	print ""
-#	print ""
-##
-
-
-# D = (r * tan(asin(edgeDist / r)) + robotHeight) / tan(asin(edgeDist / r))
-# D = (r * tan(asin(edgeDist / r)) + robotHeight - barrelHeight) / tan(asin(edgeDist / r))
-#
-#distance from the ground is 2
-#height of barrel is 5
-#radius is 1.5
