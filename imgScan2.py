@@ -1,4 +1,4 @@
-
+52
 # D = (r * tan(asin(edgeDist / r)) + robotHeight) / tan(asin(edgeDist / r))
 # D = (r * tan(asin(edgeDist / r)) + robotHeight - barrelHeight) / tan(asin(edgeDist / r))
 #
@@ -16,6 +16,7 @@ barrelHeight = 12.2682 #NOTE Can height
 barrelWidth = 2 * radius
 
 widthHeightRatio = barrelWidth / robotHeight
+widthHeightRatio2 = barrelWidth / barrelHeight
 
 cDist = 160.02
 pixHeight = 0.0902222559
@@ -50,20 +51,13 @@ from numpy import zeros # Used for analysis
 import math
 import numpy as np
 import sys
+from jvectors import Vector
 #from scipy import ndimage as ndi
 
 #from skimage import feature
 
 import cv2
 
-class Vector:
-	def __init__(self, x, y):
-		self.x = x
-		self.y = y
-class Point:
-	def __init__(self, x, y):
-		self.x = x
-		self.y = y
 
 def isRed(pixel): ### FIXME change back from green to red
 	if type(pixel) != ndarray:
@@ -173,6 +167,41 @@ def getPHeight(image, y, x):
 	return pHeight
 
 ##
+#Gets the height in pixels from a defined x and y.
+#Counts the number of red pixels until the pixels are no longer red.
+#If it encounters a blue area, it judges whether the blue area is taller than
+#half of the red area. If not, the blue area is treated as part of the red body
+#and the measurement continues.
+#
+#Then does the same thing going up, adding the two numbers together.
+
+def getPHeight2(image, y, x):
+	pHeight = 0
+	nonRedHeight = 1
+	while nonRedHeight > 0:
+		while isRed(image[y + pHeight][x]):
+			pHeight += 1
+		while y + pHeight + nonRedHeight < image.shape[0] and not isRed(image[y + pHeight + nonRedHeight][x]):
+			nonRedHeight += 1
+		if nonRedHeight < pHeight / 2:
+			pHeight += nonRedHeight + 1
+		else:
+			nonRedHeight = 0
+	pHeightUp = 0
+	nonRedHeight = 1
+	while nonRedHeight > 0:
+		while isRed(image[y - pHeightUp][x]):
+			pHeightUp += 1
+		while y - (pHeightUp + nonRedHeight) > 0 and not isRed(image[y - (pHeightUp + nonRedHeight)][x]):
+			nonRedHeight += 1
+		if nonRedHeight < pHeightUp / 2:
+			pHeightUp += nonRedHeight + 1
+		else:
+			nonRedHeight = 0
+	pHeight += pHeightUp
+	return pHeight
+
+##
 #Gets distance between the robot and the nearest point on the cylinder,
 #taking pHeight as the number of pixels between the central x-axis of the
 #image and the point where the cylinder's red ends. Returns distance
@@ -220,60 +249,74 @@ def getRLDist(pLDist, rDist):
 #Uses a rotation matrix to rotate a point. Requires theta, sin, and cos because
 #trigonometry is expensive for computer resources.
 
-def rotatePoint(point, theta, sin, cos):
-	return Point(cos * point.x - sin * point.y,
+def rotateVector(point, theta, sin, cos):
+	return Vector(cos * point.x - sin * point.y,
 				 sin * point.x + cos * point.y)
 
 ##
 #Newest scan function
-#Take pHeight ten pixels from the left - maybe less, it depends
-#Take pHeight ten pixels from the right - this improves ability to see hidden pieces
-#First, compare height with width of the body
-#If it's too tall for its width, there is clipping --
-#	Shorter side is the outer edge, compute midpoint from there.
-#Do not assume that it is not tall enough; rely on edges from HScan
+#Assume each red body to be one can
+#Take the entire pHeight of the red body
+#Judge based upon this and the ratio of height to width
+#whether this cylinder is clipped behind another or not.
 
 def scanBody4(image, y, xStart, xFinish, radius, roHeight):
 	midPoint = (xFinish + xStart) / 2
-	pHeight = getPHeight(image, y, midPoint)
-	print "Bottom middle is " + str(midPoint) + ", " + str(y + pHeight)
+	pHeight = getPHeight2(image, y, midPoint)
+	print "Cylinder center is at " + str(midPoint) + ", with height " + str(pHeight)
 	pWidth = xFinish - xStart
+	print "Left center x:", xStart, "Right center x:", xFinish, "y:", y
+	print "Width:", pWidth
 	cWidth = pixWidth * pWidth
 	cHeight = pixHeight * pHeight
 	# if cWidth is not within 10% of 3/2 of cHeight, then I need to look for
 	# other points depending on the height I do find
-	if(cWidth >= widthHeightRatio*cHeight):
+	if(cWidth >= widthHeightRatio2*cHeight):
 		#I have one cylinder
-		print "Only one cylinder found"
-		return {"midPoint":[midPoint], "bottomPoint":[y+pHeight]}
+		print "non-hidden cylinder found"
+		return {"midPoint":midPoint, "height":pHeight}
 	else: #I assume there is one and it is partially hidden.
-		print "One hidden cylinder calculated"
+		print "hidden cylinder calculated"
 		#test two heights, take the greater as nearer the centerside
 		midPoint1 = (xStart + midPoint) / 2
 		midPoint2 = (midPoint + xFinish) / 2
-		pHeight1 = getPHeight(image, y, midPoint1)
-		pHeight2 = getPHeight(image, y, midPoint2)
+		pHeight1 = getPHeight2(image, y, midPoint1)
+		pHeight2 = getPHeight2(image, y, midPoint2)
 		if(pHeight1 > pHeight):
 		  pHeight = pHeight1
 		  print "Center is to the left"
-		if(pHeight2 > pHeight):
+		elif(pHeight2 > pHeight):
 		  pHeight = pHeight2
 		  print "Center is to the right"
+		else:
+		  print "Center is in the middle"
 		if(pHeight1 > pHeight2):
-			pWidth = int(math.floor(widthHeightRatio * pHeight + 0.5))
+			pWidth = int(math.floor(widthHeightRatio * pHeight + radius))
 			midPoint = xFinish - pWidth/2
 		elif(pHeight2 > pHeight1):
-			pWidth = int(math.floor(widthHeightRatio * pHeight + 0.5))
+			pWidth = int(math.floor(widthHeightRatio * pHeight + radius))
 			midPoint = xStart + pWidth/2
 		print "Estimated pixel width of the cylinder is " + str(pWidth)
 		if(midPoint < 0 or midPoint > image.shape[1]):
 			print "Estimated midPoint is at " + str(midPoint) + ", " + str(y + pHeight)
-			return {"midPoint":[midPoint],"bottomPoint":[y+pHeight]}
+			return {"midPoint":midPoint,"height":pHeight}
 		else:
-			pHeight = getPHeight(image, y, midPoint)
+			pHeight = getPHeight2(image, y, midPoint)
 			print "Estimated midPoint is at " + str(midPoint) + ", " + str(y + pHeight)
-			return {"midPoint":[midPoint],"bottomPoint":[y+pHeight]}
+			return {"midPoint":midPoint,"height":pHeight}
 
+##
+#Calculates the coordinates of a cylinder based upon its midpoint in the image,
+#its height, and its
+
+def calculateCoords(img, midPoint, pHeight, rotCos, rotSin):
+	cHeight = pHeight * pixHeight
+	rHeight = barrelHeight
+	rDist = cDist * rHeight / cHeight + radius#Forward distance to the barrel
+	cLDist = (float(img.shape[1]) / 2.0 - midPoint ) * pixWidth
+	rLDist = cLDist * rDist / cDist #Left distance to the barrel
+	return Vector(origin.x + rotCos * rDist - rotSin * rLDist,
+	             origin.y + rotSin * rDist + rotCos * rLDist)
 ##
 #New scan function
 #Scan vertically from the middle
@@ -396,9 +439,9 @@ else:
 	heading = float(sys.argv[2])
 
 if len(sys.argv) < 5:
-	origin = Point(0,0)
+	origin = Vector(0,0)
 else:
-	origin = Point(float(sys.argv[3]), float(sys.argv[4]))
+	origin = Vector(float(sys.argv[3]), float(sys.argv[4]))
 
 print "Calculating trigonometry for rotation matrix"
 
@@ -426,18 +469,58 @@ barrels = []
 for index, xIndices in enumerate(indices):
 	print "Scanning body " + str(index)
 	keyPoints = scanBody4(img, halfYPixel, xIndices[0], xIndices[1], radius, robotHeight)
-	for i in range(len(keyPoints['bottomPoint'])):
-		cHeight = (keyPoints['bottomPoint'][i] - float(img.shape[0]) / 2.0 ) * pixHeight
-		rHeight = robotHeight
-		rDist = cDist * rHeight / cHeight + radius#Forward distance to the barrel
-		cLDist = (float(img.shape[1]) / 2.0 - keyPoints['midPoint'][i] ) * pixWidth
-		rLDist = cLDist * rDist / cDist #Left distance to the barrel
-		newBarrel = Point(origin.x + rotCos * rDist - rotSin * rLDist,
-		                  origin.y + rotSin * rDist + rotCos * rLDist)
-		barrels.append(newBarrel)
+	coords = calculateCoords(img, keyPoints['midPoint'], keyPoints['height'], rotCos, rotSin)
+	barrels.append(coords)
+barrelPairs = []
 
 for index, barrel in enumerate(barrels):
 	print "Barrel " + str(index) + ": (" + str(barrel.x) + "," + str(barrel.y) + ")"
+
+#Create a list of 'barrel pairs' and the distance between them
+
+for i in range(len(barrels)):
+	for j in range(i + 1, len(barrels)):
+		barrelPairs.append([barrels[i].dist(barrels[j]), barrels[i], barrels[j]])
+
+print "BarrelPairs:"
+
+for index, barrelPair in enumerate(barrelPairs):
+	print index,":", barrelPair[0], "(",barrelPair[1].x, barrelPair[1].y,")","(",barrelPair[2].x,barrelPair[2].y,")"
+	midPoint = barrelPair[1].diff(barrelPair[2]).div(2).add(barrelPair[1])
+	barrelPair.append(midPoint)
+	print "Midpoint:", midPoint.x, midPoint.y
+
+print ""
+
+#Sort list by distance between barrels in descending order
+
+for i in range(len(barrelPairs)):
+	maxDistIndex = i
+	for j in range(i + 1, len(barrelPairs)):
+		if barrelPairs[j][0] > barrelPairs[maxDistIndex][0]:
+			maxDistIndex = j
+	temp = barrelPairs[maxDistIndex]
+	barrelPairs[maxDistIndex] = barrelPairs[i]
+	barrelPairs[i] = temp
+
+print "Sorted BarrelPairs:"
+
+for index, barrelPair in enumerate(barrelPairs):
+	print index,":", barrelPair[0], "(",barrelPair[1].x, barrelPair[1].y,")","(",barrelPair[2].x,barrelPair[2].y,")"
+
+print ""
+
+#For each item, test if the path is clear between them.
+#
+
+for barrelPair in barrelPairs:
+	v1 = barrelPair[2].diff(barrelPair[1])
+	for barrel in barrels:
+		if barrel != barrelPair[1] and barrel != barrelPair[2]:
+			v2 = barrel.diff(barrelPair[1])
+			print v1.dot(v2)/(v1.magnitude * v2.magnitude),
+			print v1.dist(v2),
+			print barrelPair[0]
 
 ################################################################################
 

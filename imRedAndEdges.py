@@ -1,6 +1,7 @@
 import cv2
 import numpy
 from numpy import ndarray
+from numpy import zeros
 import sys
 
 def isRed(pixel): ### FIXME change back from green to red
@@ -13,14 +14,8 @@ def isRed(pixel): ### FIXME change back from green to red
 	#print pixel[0],pixel[1],pixel[2]
 	#NOTE: Canny pixels are patterned as [B, G, R]
 	if (pixel[1] > 1.1*pixel[0]) and (pixel[1] > 1.1*pixel[2]) and (pixel[1] > 50):
-		red0.append(pixel[0])
-		red1.append(pixel[1])
-		red2.append(pixel[2])
 		return True
 	else:
-		notRed0.append(pixel[0])
-		notRed1.append(pixel[1])
-		notRed2.append(pixel[2])
 		return False
 
 def paintImage(image, filename):
@@ -68,6 +63,8 @@ else:
 	if not imgFile.endswith(".png"):
 		print "USAGE: python imRedAndEdges.py [png file]"
 		exit()
+
+img = cv2.imread(imgFile, 1)
 
 print "Creating copy of " + imgFile + " with all red highlighted."
 paintImage(img, imgFile)
