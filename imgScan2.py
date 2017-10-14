@@ -10,9 +10,9 @@ voberse = False
 #Can dimensions - 4.83 inches high, 2.13 inch diameter at lid, 2.60 inch diameter at the middle
 
 
-radius = 3.302 #NOTE The larger radius of the can
-robotHeight = 3.22899921 #NOTE This is the webcam's elevation, unlikely to be used at present time
-barrelHeight = 12.2682 #NOTE Can height
+radius = 0.03302 #NOTE The larger radius of the can
+robotHeight = 0.0322899921 #NOTE This is the webcam's elevation, unlikely to be used at present time
+barrelHeight = 0.0122682 #NOTE Can height
 barrelWidth = 2 * radius
 
 widthHeightRatio = barrelWidth / robotHeight
@@ -20,8 +20,8 @@ widthHeightRatio2 = barrelWidth / barrelHeight
 
 #Calibration data for webcam
 
-cDist = 160.02
-pixHeight = 0.0902222559
+cDist = 1.6002
+pixHeight = 0.00902222559
 pixWidth = pixHeight
 
 #Calibration data for POVRay
@@ -405,14 +405,19 @@ def compHeadToCoordHead(heading):
 	return heading
 
 def pathIsClear(v1, v2, barrels):
+	if voberse:
+		print ("PathIsClear:")
+		print ("v1:", v1.x, v1.y, "v2:", v2.x, v2.y)
 	mainV = v2.diff(v1)
 	midP = mainV.div(2).add(v1)
 	for barrel in barrels:
-		barrelV = v2.diff(barrel)
-		sin = mainV.sin(barrelV)
-		dist = sin * mainV.dist(barrelV)
-		if dist < radius * 2 and midP.dist(barrelV) < midP.dist(mainV):
-			return False
+		if barrel != v1 and barrel != v2:
+			if voberse: print("barrel:",barrel.x,barrel.y)
+			barrelV = v2.diff(barrel)
+			sin = mainV.sin(barrelV)
+			dist = sin * mainV.dist(barrelV)
+			if dist < radius * 2 and midP.dist(barrelV) < midP.dist(mainV):
+				return False
 	return True
 
 #Take the image
@@ -513,8 +518,9 @@ for i in range(len(barrelPairs)):
 
 if voberse: print("Sorted BarrelPairs:")
 
-if voberse: for index, barrelPair in enumerate(barrelPairs):
-	print(index,":", barrelPair[0], "(",barrelPair[1].x, barrelPair[1].y,")","(",barrelPair[2].x,barrelPair[2].y,")")
+if voberse:
+	for index, barrelPair in enumerate(barrelPairs):
+		print(index,":", barrelPair[0], "(",barrelPair[1].x, barrelPair[1].y,")","(",barrelPair[2].x,barrelPair[2].y,")")
 
 if voberse: print("")
 
@@ -532,11 +538,16 @@ for index, barrelPair in enumerate(barrelPairs):
 			nearBarrel = barrelPair[2]
 		else:
 			nearBarrel = barrelPair[1]
-		vb = nearBarrel.diff(origin)
+		vb = origin.diff(nearBarrel)
 		vorth1 = Vector(vb.y, -vb.x)
-		vorth1 = vb + vorth1.norm() * barrelPair[1].dist(barrelPair[3])
 		vorth2 = Vector(-vb.y, vb.x)
-		vorth2 = vb + vorth2.norm() * barrelPair[1].dist(barrelPair[3])
+		#if voberse:
+		#	print("BEFORE:","vorth1:", vorth1.x,vorth1.y,"vorth2:", vorth2.x, vorth2.y)
+		#	print("vb",vb.x,vb.y,"vorth1.norm()",vorth1.norm().x, vorth1.norm().y, "rad:",barrelPair[1].dist(barrelPair[3]), "dist:", barrelPair[0])
+		vorth1 = vb.add(vorth1.norm().mult(barrelPair[1].dist(barrelPair[3])))
+		vorth2 = vb.add(vorth2.norm().mult(barrelPair[1].dist(barrelPair[3])))
+		#if voberse:
+		#	print("AFTER:","vorth1:",vorth1.x,vorth1.y,"vorth2:",vorth2.x,vorth2.y)
 		if vorth1.dist(barrelPair[3]) < vorth2.dist(barrelPair[3]):
 			wp = vorth1
 		else:

@@ -9,7 +9,7 @@ class Vector:
   def dot(self, vector):
     return self.x * vector.x + self.y * vector.y
   def cross(self, vector):
-    return self.x * vector.y - self.y * vector.x
+    return abs(self.x * vector.y - self.y * vector.x)
   def dist(self, vector):
     return math.sqrt( (self.x - vector.x)**2 + (self.y - vector.y)**2 )
   def add(self, vector):
@@ -27,4 +27,4 @@ class Vector:
   def cos(self, vector):
     return self.dot(vector)/(self.magnitude() * vector.magnitude())
   def norm(self):
-    return self/self.magnitude()
+    return self.div(self.magnitude())
