@@ -169,7 +169,7 @@ def getPHeight2(image, y, x):
 	pHeight = 0
 	nonRedHeight = 1
 	while nonRedHeight > 0:
-		while isRed(image[y + pHeight][x]):
+		while y + pHeight < image.shape[0] and isRed(image[y + pHeight][x]):
 			pHeight += 1
 		while y + pHeight + nonRedHeight < image.shape[0] and not isRed(image[y + pHeight + nonRedHeight][x]):
 			nonRedHeight += 1
@@ -180,12 +180,16 @@ def getPHeight2(image, y, x):
 	pHeightUp = 0
 	nonRedHeight = 1
 	while nonRedHeight > 0:
-		while isRed(image[y - pHeightUp][x]):
+		while y - pHeightUp >= 0 and isRed(image[y - pHeightUp][x]):
+			#if voberse:
+				#print "y, pHeightUp: ",y, pHeightUp
 			pHeightUp += 1
 		while y - (pHeightUp + nonRedHeight) > 0 and not isRed(image[y - (pHeightUp + nonRedHeight)][x]):
 			nonRedHeight += 1
 		if nonRedHeight < pHeightUp / 2:
 			pHeightUp += nonRedHeight + 1
+			if y - (pHeightUp + nonRedHeight) <= 0:
+				nonRedHeight = 0
 		else:
 			nonRedHeight = 0
 	pHeight += pHeightUp
@@ -555,7 +559,8 @@ for index, barrelPair in enumerate(barrelPairs):
 		if not pathIsClear(origin, wp, barrels) or not pathIsClear(wp, barrelPair[3], barrels):
 			viable = False
 	if viable:
-		if origin.dist(wp) < origin.dist(barrelPair[3]):
+		beyondPoint = origin.diff(barrelPair[3]).mult(2)
+		if origin.dist(wp) < origin.dist(barrelPair[3]) and not pathIsClear(origin, beyondPoint, barrels):
 			print (wp.x, wp.y)
 		print (barrelPair[3].x, barrelPair[3].y)
 		break
