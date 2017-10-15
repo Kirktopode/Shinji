@@ -2,7 +2,7 @@
 # D = (r * tan(asin(edgeDist / r)) + robotHeight - barrelHeight) / tan(asin(edgeDist / r))
 #
 #NOTE image array is in format [y][x][bgr]
-COLOR = "G"
+COLOR = "R"
 voberse = False
 
 ################################################################################
@@ -19,17 +19,17 @@ barrelHeight = barrelHeight * cmPerInch / 100
 radius = barrelWidth / 2
 
 #NOTE these are can dimensions
-radius = 3.302#/100 #NOTE The larger radius of the can be used at present time
-barrelHeight = 12.2682#/100 #NOTE Can height
-barrelWidth = 2 * radius
+#radius = 3.302#/100 #NOTE The larger radius of the can be used at present time
+#barrelHeight = 12.2682#/100 #NOTE Can height
+#barrelWidth = 2 * radius
 
 widthHeightRatio2 = barrelWidth / barrelHeight
 
 
 #Calibration data for webcam
 
-cDist = 160.02#/100
-pixHeight = 0.0902222559#/100
+cDist = 160.02/100
+pixHeight = 0.0902222559/100
 pixWidth = pixHeight
 
 #Calibration data for POVRay
@@ -72,7 +72,7 @@ def isRed(pixel): ### FIXME change back from green to red
 		else:
 			return False
 	elif COLOR == "R":
-		if (pixel[2] > 1.1*pixel[0]) and (pixel[2] > 1.1*pixel[1]) and (pixel[2] > 50):
+		if (pixel[2] > 2*pixel[0]) and (pixel[2] > 2*pixel[1]) and (pixel[2] > 50):
 			return True
 		else:
 			return False
@@ -455,15 +455,15 @@ def pathIsClear(v1, v2, barrels):
 #
 
 if len(sys.argv) < 2:
-	print("USAGE: python imgScan2.py [png file] [heading] [origin x] [origin y] [-v]")
+	print("USAGE: python imgScan2.py [png or jpg file] [heading] [origin x] [origin y] [-v]")
 	print("heading defaults to 90 (east)")
 	print("origin defaults to 0 0")
 	print("-v triggers voberse mode")
 	exit()
 else:
 	imgFile = sys.argv[1]
-	if not imgFile.endswith(".png"):
-		print("USAGE: python imgScan2.py [png file] [heading] [origin x] [origin y] [-v]")
+	if not imgFile.endswith(".png") and not imgFile.endswith(".jpg"):
+		print("USAGE: python imgScan2.py [png or jpg file] [heading] [origin x] [origin y] [-v]")
 		print("heading defaults to 90 (east)")
 		print("origin defaults to 0 0")
 		print("-v triggers voberse mode")
@@ -501,7 +501,7 @@ if voberse: print("img shape: ", img.shape)
 if voberse: print("edges shape: ", edges.shape)
 if voberse: print("Edges at 500,500", edges[500][500])
 
-halfYPixel = img.shape[0]/2
+halfYPixel = 943 #FIXME change value back to img.shape[0]/2#img.shape[0]/2
 
 indices = scanH3(img, edges, halfYPixel, 0, img.shape[1])
 if voberse: print("Indices:", indices)
@@ -516,6 +516,10 @@ barrelPairs = []
 
 for index, barrel in enumerate(barrels):
 	if voberse: print("Barrel " + str(index) + ": (" + str(barrel.x) + "," + str(barrel.y) + ")")
+
+for barrel in barrels:
+	if origin.dist(barrel) > 8:
+		barrels.remove(barrel)
 
 #Create a list of 'barrel pairs' and the distance between them
 
@@ -591,7 +595,8 @@ for index, barrelPair in enumerate(barrelPairs):
 			viable = False
 	if viable:
 		beyondPoint = (barrelPair[3] - origin).mult(2) + origin
+		if voberse: print "beyondPoint: " + str(beyondPoint)
 		if origin.dist(wp) < origin.dist(barrelPair[3]) and not pathIsClear(origin, beyondPoint, barrels):
-			print (wp.x, wp.y)
-		print (barrelPair[3].x, barrelPair[3].y)
+			print str(wp)
+		print str(barrelPair[3])
 		break

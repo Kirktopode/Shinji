@@ -4,19 +4,32 @@ from numpy import ndarray
 from numpy import zeros
 import sys
 
+COLOR = "R"
+
 def isRed(pixel): ### FIXME change back from green to red
 	if type(pixel) != ndarray:
-		print "!--Error--> wrong type passed to isRed"
+		if voberse: print ("!--Error--> wrong type passed to isRed")
 		return
 	if len(pixel) != 3:
-		print "!--Error--> wrong length passed to isRed"
+		if voberse: print ("!--Error--> wrong length passed to isRed")
 		return
 	#print pixel[0],pixel[1],pixel[2]
-	#NOTE: Canny pixels are patterned as [B, G, R]
-	if (pixel[1] > 1.1*pixel[0]) and (pixel[1] > 1.1*pixel[2]) and (pixel[1] > 50):
-		return True
-	else:
-		return False
+	#NOTE: Canny pixels are patterned as [B,G,R]
+	if COLOR == "G":
+		if (pixel[1] > 1.1*pixel[0]) and (pixel[1] > 1.1*pixel[2]) and (pixel[1] > 50):
+			return True
+		else:
+			return False
+	elif COLOR == "R":
+		if (pixel[2] > 2*pixel[0]) and (pixel[2] > 2*pixel[1]) and (pixel[2] > 50):
+			return True
+		else:
+			return False
+	elif COLOR == "B":
+		if (pixel[0] > 1.1*pixel[1]) and (pixel[0] > 1.1*pixel[2]) and (pixel[0] > 50):
+			return True
+		else:
+			return False
 
 def paintImage(image, filename):
 	imgPainted = zeros([len(image), len(image[0]), 3])
@@ -56,12 +69,12 @@ def edgeFind(image, filename):
 	cv2.imwrite(newPath2, imgEdges2)
 
 if len(sys.argv) < 2:
-	print "USAGE: python imRedAndEdges.py [png file]"
+	print "USAGE: python imRedAndEdges.py [png or jpg file]"
 	exit()
 else:
 	imgFile = sys.argv[1]
-	if not imgFile.endswith(".png"):
-		print "USAGE: python imRedAndEdges.py [png file]"
+	if not imgFile.endswith(".png") and not imgFile.endswith(".jpg"):
+		print "USAGE: python imRedAndEdges.py [png or jpg file]"
 		exit()
 
 img = cv2.imread(imgFile, 1)
