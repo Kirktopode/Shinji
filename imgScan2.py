@@ -2,29 +2,34 @@
 # D = (r * tan(asin(edgeDist / r)) + robotHeight - barrelHeight) / tan(asin(edgeDist / r))
 #
 #NOTE image array is in format [y][x][bgr]
-
+COLOR = "G"
 voberse = False
 
 ################################################################################
 
 #Can dimensions - 4.83 inches high, 2.13 inch diameter at lid, 2.60 inch diameter at the middle
 
+#NOTE these are barrel dimensions
+barrelHeight = 34.25 #inches
+barrelWidth = 23.25 #inches
+cmPerInch = 2.54
 
-radius = 3.302 #/100 #NOTE The larger radius of the can
-robotHeight = 3.22899921 #/100 #NOTE This is the webcam's elevation, unlikely to be used at present time
-barrelHeight = 12.2682 #/100 #NOTE Can height
+barrelWidth = barrelWidth * cmPerInch / 100
+barrelHeight = barrelHeight * cmPerInch / 100
+radius = barrelWidth / 2
+
+#NOTE these are can dimensions
+radius = 3.302#/100 #NOTE The larger radius of the can be used at present time
+barrelHeight = 12.2682#/100 #NOTE Can height
 barrelWidth = 2 * radius
 
-widthHeightRatio = barrelWidth / robotHeight
 widthHeightRatio2 = barrelWidth / barrelHeight
 
-drumHeight = 34.25 #inches
-drumDiameter = 23.25 #inches
 
 #Calibration data for webcam
 
-cDist = 160.02 #/100
-pixHeight = 0.0902222559 #/100
+cDist = 160.02#/100
+pixHeight = 0.0902222559#/100
 pixWidth = pixHeight
 
 #Calibration data for POVRay
@@ -61,10 +66,21 @@ def isRed(pixel): ### FIXME change back from green to red
 		return
 	#print pixel[0],pixel[1],pixel[2]
 	#NOTE: Canny pixels are patterned as [B,G,R]
-	if (pixel[1] > 1.1*pixel[0]) and (pixel[1] > 1.1*pixel[2]) and (pixel[1] > 50):
-		return True
-	else:
-		return False
+	if COLOR == "G":
+		if (pixel[1] > 1.1*pixel[0]) and (pixel[1] > 1.1*pixel[2]) and (pixel[1] > 50):
+			return True
+		else:
+			return False
+	elif COLOR == "R":
+		if (pixel[2] > 1.1*pixel[0]) and (pixel[2] > 1.1*pixel[1]) and (pixel[2] > 50):
+			return True
+		else:
+			return False
+	elif COLOR == "B":
+		if (pixel[0] > 1.1*pixel[1]) and (pixel[0] > 1.1*pixel[2]) and (pixel[0] > 50):
+			return True
+		else:
+			return False
 
 #Scan a select portion of a horizontal line, returning an array of index pairs.
 #The first of each pair is where a red body begins, the second is where it ends.
@@ -257,7 +273,7 @@ def rotateVector(point, theta, sin, cos):
 #Judge based upon this and the ratio of height to width
 #whether this cylinder is clipped behind another or not.
 
-def scanBody4(image, y, xStart, xFinish, radius, roHeight):
+def scanBody4(image, y, xStart, xFinish, radius):
 	midPoint = (xFinish + xStart) / 2
 	pHeight = getPHeight2(image, y, midPoint)
 	if voberse: print("Cylinder center is at " + str(midPoint) + ", with height " + str(pHeight))
@@ -288,10 +304,10 @@ def scanBody4(image, y, xStart, xFinish, radius, roHeight):
 		else:
 		  if voberse: print("Center is in the middle")
 		if(pHeight1 > pHeight2):
-			pWidth = int(math.floor(widthHeightRatio * pHeight + radius))
+			pWidth = int(math.floor(widthHeightRatio2 * pHeight + radius))
 			midPoint = xFinish - pWidth/2
 		elif(pHeight2 > pHeight1):
-			pWidth = int(math.floor(widthHeightRatio * pHeight + radius))
+			pWidth = int(math.floor(widthHeightRatio2 * pHeight + radius))
 			midPoint = xStart + pWidth/2
 		if voberse: print("Estimated pixel width of the cylinder is " + str(pWidth))
 		if(midPoint < 0 or midPoint > image.shape[1]):
@@ -493,7 +509,7 @@ if voberse: print("halfYPixel:", halfYPixel)
 barrels = []
 for index, xIndices in enumerate(indices):
 	if voberse: print("Scanning body " + str(index))
-	keyPoints = scanBody4(img, halfYPixel, xIndices[0], xIndices[1], radius, robotHeight)
+	keyPoints = scanBody4(img, halfYPixel, xIndices[0], xIndices[1], radius)
 	coords = calculateCoords(img, keyPoints['midPoint'], keyPoints['height'], rotCos, rotSin)
 	barrels.append(coords)
 barrelPairs = []
@@ -574,7 +590,7 @@ for index, barrelPair in enumerate(barrelPairs):
 		if not pathIsClear(origin, wp, barrels) or not pathIsClear(wp, barrelPair[3], barrels):
 			viable = False
 	if viable:
-		beyondPoint = origin.diff(barrelPair[3]).mult(2)
+		beyondPoint = (barrelPair[3] - origin).mult(2) + origin
 		if origin.dist(wp) < origin.dist(barrelPair[3]) and not pathIsClear(origin, beyondPoint, barrels):
 			print (wp.x, wp.y)
 		print (barrelPair[3].x, barrelPair[3].y)

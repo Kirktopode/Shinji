@@ -18,8 +18,6 @@ class Vector:
     return self.dot(vector)/(self.magnitude() * vector.magnitude())
   def norm(self):
     return self.div(self.magnitude())
-<<<<<<< HEAD
-=======
   def __add__(self, other):
       return Vector(self.x + other.x, self.y + other.y)
   def mult(self, factor):
@@ -35,4 +33,3 @@ class Vector:
       return not self == other
   def __str__(self):
       return str(self.x) + " " + str(self.y)
->>>>>>> bug-fixing
