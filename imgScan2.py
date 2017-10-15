@@ -10,18 +10,21 @@ voberse = False
 #Can dimensions - 4.83 inches high, 2.13 inch diameter at lid, 2.60 inch diameter at the middle
 
 
-radius = 0.03302 #NOTE The larger radius of the can
-robotHeight = 0.0322899921 #NOTE This is the webcam's elevation, unlikely to be used at present time
-barrelHeight = 0.0122682 #NOTE Can height
+radius = 3.302 #/100 #NOTE The larger radius of the can
+robotHeight = 3.22899921 #/100 #NOTE This is the webcam's elevation, unlikely to be used at present time
+barrelHeight = 12.2682 #/100 #NOTE Can height
 barrelWidth = 2 * radius
 
 widthHeightRatio = barrelWidth / robotHeight
 widthHeightRatio2 = barrelWidth / barrelHeight
 
+drumHeight = 34.25 #inches
+drumDiameter = 23.25 #inches
+
 #Calibration data for webcam
 
-cDist = 1.6002
-pixHeight = 0.00902222559
+cDist = 160.02 #/100
+pixHeight = 0.0902222559 #/100
 pixWidth = pixHeight
 
 #Calibration data for POVRay
@@ -409,19 +412,24 @@ def compHeadToCoordHead(heading):
 	return heading
 
 def pathIsClear(v1, v2, barrels):
-	if voberse:
-		print ("PathIsClear:")
-		print ("v1:", v1.x, v1.y, "v2:", v2.x, v2.y)
-	mainV = v2.diff(v1)
-	midP = mainV.div(2).add(v1)
+	mainV = v1 - v2
+	midP = (v1 + v2).div(2)
 	for barrel in barrels:
 		if barrel != v1 and barrel != v2:
-			if voberse: print("barrel:",barrel.x,barrel.y)
-			barrelV = v2.diff(barrel)
+			barrelV = barrel - v2
 			sin = mainV.sin(barrelV)
 			dist = sin * mainV.dist(barrelV)
-			if dist < radius * 2 and midP.dist(barrelV) < midP.dist(mainV):
+			if voberse:
+				print "distance from " + str(barrel) + " to path between " + str(v1) + " and " + str(v2) + ": " + str(dist)
+				print "midP dist to barrel: " + str(midP.dist(barrel))
+				print "midP dist to v1: " + str(midP.dist(v1))
+				print "midP: " + str(midPoint)
+			if dist < radius * 2 and midP.dist(barrel) < midP.dist(v1):
+				if voberse:
+					print "path not clear"
 				return False
+	if voberse:
+		print "path clear"
 	return True
 
 #Take the image
@@ -503,10 +511,9 @@ if voberse: print "BarrelPairs:"
 
 for index, barrelPair in enumerate(barrelPairs):
 	if voberse: print(index,":", barrelPair[0], "(",barrelPair[1].x, barrelPair[1].y,")","(",barrelPair[2].x,barrelPair[2].y,")")
-	midPoint = barrelPair[1].diff(barrelPair[2]).div(2).add(barrelPair[1])
+	midPoint = (barrelPair[2] - barrelPair[1]).div(2)  + barrelPair[1]
 	barrelPair.append(midPoint)
-	if voberse: print("Midpoint:", midPoint.x, midPoint.y)
-
+	if voberse: print("Midpoint:", midPoint)
 if voberse: print("")
 
 #Sort list by distance between barrels in descending order
@@ -524,7 +531,7 @@ if voberse: print("Sorted BarrelPairs:")
 
 if voberse:
 	for index, barrelPair in enumerate(barrelPairs):
-		print(index,":", barrelPair[0], "(",barrelPair[1].x, barrelPair[1].y,")","(",barrelPair[2].x,barrelPair[2].y,")")
+		print(index,":", barrelPair[0], "(",barrelPair[1].x, barrelPair[1].y,")","(",barrelPair[2].x,barrelPair[2].y,")",str(barrelPair[3]))
 
 if voberse: print("")
 
@@ -532,7 +539,7 @@ if voberse: print("")
 #
 
 for index, barrelPair in enumerate(barrelPairs):
-	v1 = barrelPair[2].diff(barrelPair[1])
+	v1 = barrelPair[1] - barrelPair[2]
 	viable = True
 	if not pathIsClear(barrelPair[1], barrelPair[2], barrels):
 		viable = False
@@ -542,16 +549,24 @@ for index, barrelPair in enumerate(barrelPairs):
 			nearBarrel = barrelPair[2]
 		else:
 			nearBarrel = barrelPair[1]
-		vb = origin.diff(nearBarrel)
+		vb = nearBarrel - origin
+		if voberse:
+			print "origin:",origin
+			print "nearbarrel:", nearBarrel
+			print "vb:", vb
 		vorth1 = Vector(vb.y, -vb.x)
 		vorth2 = Vector(-vb.y, vb.x)
-		#if voberse:
-		#	print("BEFORE:","vorth1:", vorth1.x,vorth1.y,"vorth2:", vorth2.x, vorth2.y)
-		#	print("vb",vb.x,vb.y,"vorth1.norm()",vorth1.norm().x, vorth1.norm().y, "rad:",barrelPair[1].dist(barrelPair[3]), "dist:", barrelPair[0])
-		vorth1 = vb.add(vorth1.norm().mult(barrelPair[1].dist(barrelPair[3])))
-		vorth2 = vb.add(vorth2.norm().mult(barrelPair[1].dist(barrelPair[3])))
-		#if voberse:
-		#	print("AFTER:","vorth1:",vorth1.x,vorth1.y,"vorth2:",vorth2.x,vorth2.y)
+		if voberse:
+			print "vb", vb
+			print "midpoint", barrelPair[3]
+			print "vorth1&2",str(vorth1), str(vorth2)
+			print "vorth1&2 normed",vorth1.norm(), vorth2.norm()
+			print "vorth1 normed and multipled by dist to midpoint:",vorth1.norm().mult(barrelPair[1].dist(barrelPair[3]))
+			print "vorth2 normed and multipled by dist to midpoint:",vorth2.norm().mult(barrelPair[1].dist(barrelPair[3]))
+		vorth1 = vb + (vorth1.norm().mult(barrelPair[0] / 2))
+		vorth2 = vb + (vorth2.norm().mult(barrelPair[0] / 2))
+		if voberse:
+			print "vorth1&2 as potential wp:", vorth1, vorth2
 		if vorth1.dist(barrelPair[3]) < vorth2.dist(barrelPair[3]):
 			wp = vorth1
 		else:
